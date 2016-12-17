@@ -27,44 +27,46 @@ class AssetCompressHelper extends Helper
      *
      * @var array
      */
-    public $helpers = array('Html');
+    public $helpers = ['Html'];
 
     /**
      * Configuration object
      *
-     * @var AssetConfig
+     * @var \MiniAsset\AssetConfig
      */
     protected $config;
 
     /**
      * Factory for other AssetCompress objects.
      *
-     * @var AssetCompress\Factory
+     * @var \AssetCompress\Factory
      */
     protected $factory;
 
     /**
      * AssetCollection for the current config set.
      *
-     * @var AssetCompress\AssetCollection
+     * @var \MiniAsset\AssetCollection
      */
     protected $collection;
 
     /**
      * AssetWriter instance
      *
-     * @var AssetCompress\AssetWriter
+     * @var \MiniAsset\Output\AssetWriter
      */
     protected $writer;
 
     /**
      * Constructor - finds and parses the ini file the plugin uses.
      *
+     * @param \Cake\View\View $view The view instance to use.
+     * @param array $settings The settings for the helper.
      * @return void
      */
-    public function __construct(View $View, $settings = array())
+    public function __construct(View $view, $settings = [])
     {
-        parent::__construct($View, $settings);
+        parent::__construct($view, $settings);
         if (empty($settings['noconfig'])) {
             $configFinder = new ConfigFinder();
             $this->assetConfig($configFinder->loadAll());
@@ -75,8 +77,8 @@ class AssetCompressHelper extends Helper
      * Modify the runtime configuration of the helper.
      * Used as a get/set for the ini file values.
      *
-     * @param AssetCompress\AssetConfig $config The config instance to set.
-     * @return Either the current config object or null.
+     * @param \MiniAsset\AssetConfig $config The config instance to set.
+     * @return \MiniAsset\AssetConfig|null Either the current config object or null.
      */
     public function assetConfig($config = null)
     {
@@ -89,7 +91,7 @@ class AssetCompressHelper extends Helper
     /**
      * Get the AssetCompress factory based on the config object.
      *
-     * @return AssetCompress\Factory
+     * @return \AssetCompress\Factory
      */
     protected function factory()
     {
@@ -97,32 +99,35 @@ class AssetCompressHelper extends Helper
             $this->config->theme($this->theme);
             $this->factory = new Factory($this->config);
         }
+
         return $this->factory;
     }
 
     /**
      * Get the AssetCollection
      *
-     * @return AssetCompress\AssetCollection
+     * @return \MiniAsset\AssetCollection
      */
     protected function collection()
     {
         if (empty($this->collection)) {
             $this->collection = $this->factory()->assetCollection();
         }
+
         return $this->collection;
     }
 
     /**
      * Get the AssetWriter
      *
-     * @return AssetCompress\AssetWriter
+     * @return \MiniAsset\Output\AssetWriter
      */
     protected function writer()
     {
         if (empty($this->writer)) {
             $this->writer = $this->factory()->writer();
         }
+
         return $this->writer;
     }
 
@@ -138,6 +143,7 @@ class AssetCompressHelper extends Helper
         if (substr($file, strlen($ext) * -1) !== $ext) {
             $file .= $ext;
         }
+
         return $file;
     }
 
@@ -155,9 +161,9 @@ class AssetCompressHelper extends Helper
      * @param string $file A build target to include.
      * @param array $options An array of options for the stylesheet tag.
      * @throws RuntimeException
-     * @return A stylesheet tag
+     * @return string A stylesheet tag
      */
-    public function css($file, $options = array())
+    public function css($file, $options = [])
     {
         $file = $this->_addExt($file, '.css');
         if (!$this->collection()->contains($file)) {
@@ -171,13 +177,20 @@ class AssetCompressHelper extends Helper
             $target = $this->collection()->get($file);
             foreach ($target->files() as $part) {
                 $path = $this->_relativizePath($part->path());
+                if (DS === '\\') {
+                    $path = str_replace(DS, '/', $path);
+                }
+                $path .= (isset($options['version']) && !empty($options['version']))? "?ver={$options['version']}": ''; 
                 $output .= $this->Html->css($path, $options);
             }
+
             return $output;
         }
-
+        
         $url = $this->url($file, $options);
         unset($options['full']);
+        
+        $url .= (isset($options['version']) && !empty($options['version']))? "?ver={$options['version']}": '';
         return $this->Html->css($url, $options);
     }
 
@@ -197,7 +210,7 @@ class AssetCompressHelper extends Helper
      * @throws RuntimeException
      * @return A script tag
      */
-    public function script($file, $options = array())
+    public function script($file, $options = [])
     {
         $file = $this->_addExt($file, '.js');
         if (!$this->collection()->contains($file)) {
@@ -211,14 +224,20 @@ class AssetCompressHelper extends Helper
             $target = $this->collection()->get($file);
             foreach ($target->files() as $part) {
                 $path = $this->_relativizePath($part->path());
+                if (DS === '\\') {
+                    $path = str_replace(DS, '/', $path);
+                }
+                $path .= (isset($options['version']) && !empty($options['version']))? "?ver={$options['version']}": '';
                 $output .= $this->Html->script($path, $options);
             }
+
             return $output;
         }
 
         $url = $this->url($file, $options);
         unset($options['full']);
 
+        $url .= (isset($options['version']) && !empty($options['version']))? "?ver={$options['version']}": '';
         return $this->Html->script($url, $options);
     }
 
@@ -241,6 +260,7 @@ class AssetCompressHelper extends Helper
             }
         }
         $path = str_replace(WWW_ROOT, '/', $path);
+
         return str_replace(DS, '/', $path);
     }
 
@@ -251,7 +271,7 @@ class AssetCompressHelper extends Helper
      * to that build file.
      *
      * @param string $file The build file that you want a URL for.
-     * @param array $options Options for URL generation.
+     * @param bool|array $full Whether or not the URL should have the full base path.
      * @return string The generated URL.
      * @throws RuntimeException when the build file does not exist.
      */
@@ -264,9 +284,9 @@ class AssetCompressHelper extends Helper
 
         $options = $full;
         if (!is_array($full)) {
-            $options = array('full' => $full);
+            $options = ['full' => $full];
         }
-        $options += array('full' => false);
+        $options += ['full' => false];
 
         $target = $collection->get($file);
         $type = $target->ext();
@@ -285,6 +305,7 @@ class AssetCompressHelper extends Helper
         $path = str_replace('\\', '/', $target->outputDir());
         $path = str_replace($root, '/', $path);
 
+        $route = null;
         if (!$devMode) {
             $path = rtrim($path, '/') . '/';
             $route = $path . $this->_getBuildName($target);
@@ -299,6 +320,7 @@ class AssetCompressHelper extends Helper
 
         if ($options['full']) {
             $base = Router::fullBaseUrl();
+
             return $base . $route;
         }
 
@@ -311,7 +333,7 @@ class AssetCompressHelper extends Helper
      * Generates filenames that are intended for production use
      * with statically generated files.
      *
-     * @param AssetCompress\AssetTarget $build The build being resolved.
+     * @param \MiniAsset\AssetTarget $build The build being resolved.
      * @return string The resolved build name.
      */
     protected function _getBuildName(AssetTarget $build)
@@ -324,13 +346,13 @@ class AssetCompressHelper extends Helper
      *
      * This generates URLs that work with the development dispatcher filter.
      *
-     * @param string $file The build file you want to make a url for.
+     * @param \MiniAsset\AssetTarget $file The build file you want to make a url for.
      * @param string $base The base path to fetch a url with.
      * @return string Generated URL.
      */
     protected function _getRoute(AssetTarget $file, $base)
     {
-        $query = array();
+        $query = [];
 
         if ($file->isThemed()) {
             $query['theme'] = $this->theme;
@@ -338,6 +360,7 @@ class AssetCompressHelper extends Helper
 
         $base = rtrim($base, '/') . '/';
         $query = empty($query) ? '' : '?' . http_build_query($query);
+
         return $base . $file->name() . $query;
     }
 
@@ -345,7 +368,7 @@ class AssetCompressHelper extends Helper
      * Check if a build exists (is defined and have at least one file) in the ini file.
      *
      * @param string $file Name of the build that will be checked if exists.
-     * @return boolean True if the build file exists.
+     * @return bool True if the build file exists.
      */
     public function exists($file)
     {
@@ -375,7 +398,7 @@ class AssetCompressHelper extends Helper
         $compiler = $this->factory()->compiler();
         $results = $compiler->generate($collection->get($file));
 
-        return $this->Html->tag('style', $results, array('type' => 'text/css'));
+        return $this->Html->tag('style', $results, ['type' => 'text/css']);
     }
 
     /**
@@ -400,6 +423,7 @@ class AssetCompressHelper extends Helper
         }
         $compiler = $this->factory()->compiler();
         $results = $compiler->generate($collection->get($file));
+
         return $this->Html->tag('script', $results);
     }
 }
