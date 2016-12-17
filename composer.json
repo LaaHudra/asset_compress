@@ -5,7 +5,7 @@
 	"keywords": ["cakephp", "assets", "minifier", "less", "coffee-script", "sass"],
 	"homepage": "https://github.com/laahudra/asset_compress",
 	"license": "MIT",
-	"minimum-stability": 'dev',
+	"minimum-stability": "dev",
 	"authors": [
 		{
 			"name": "Mark Story",
