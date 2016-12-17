@@ -1,5 +1,5 @@
 {
-	"name": "markstory/asset_compress",
+	"name": "laahudra/asset_compress",
 	"description": "An asset compression plugin for CakePHP. Provides file concatenation and a flexible filter system for preprocessing and minification.",
 	"type": "cakephp-plugin",
 	"keywords": ["cakephp", "assets", "minifier", "less", "coffee-script", "sass"],
